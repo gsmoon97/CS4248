@@ -17,8 +17,29 @@ def read_train_file(train_file):
     return train_data
 
 
-def build_transition_matrix(train_data):
-    transition_matrix = defaultdict(lambda: defaultdict(int))
+def build_tag_set(train_data):
+    tag_set = set()
+    for tagged_sentence in train_data:
+        for tagged_word in tagged_sentence:
+            tag_set.add(tagged_word[1])
+    return tag_set
+
+
+def build_voc_set(train_data):
+    voc_set = set()
+    for tagged_sentence in train_data:
+        for tagged_word in tagged_sentence:
+            voc_set.add(tagged_word[0])
+    return voc_set
+
+
+def build_transition_matrix(train_data, tag_set):
+    # transition_matrix = defaultdict(lambda: defaultdict(int))
+    transition_matrix = {
+        pre_tag: {cur_tag: 0 for cur_tag in tag_set} for pre_tag in tag_set
+    }
+    # add <s> to previous tags (states) of the transition matrix
+    transition_matrix['<s>'] = {cur_tag: 0 for cur_tag in tag_set}
     for tagged_sentence in train_data:
         for i in range(len(tagged_sentence)):
             if i == 0:
@@ -34,8 +55,11 @@ def build_transition_matrix(train_data):
     return transition_matrix
 
 
-def build_emission_matrix(train_data):
-    emission_matrix = defaultdict(lambda: defaultdict(int))
+def build_emission_matrix(train_data, tag_set, voc_set):
+    # emission_matrix = defaultdict(lambda: defaultdict(int))
+    emission_matrix = {
+        cur_tag: {cur_voc: 0 for cur_voc in voc_set} for cur_tag in tag_set
+    }
     for tagged_sentence in train_data:
         for i in range(len(tagged_sentence)):
             emission_matrix[tagged_sentence[i][1]][tagged_sentence[i][0]] += 1
@@ -55,8 +79,10 @@ def write_model_file(model_file, input):
 def train_model(train_file, model_file):
     # write your code here. You can add functions as well.
     train_data = read_train_file(train_file)
-    transition_matrix = build_transition_matrix(train_data)
-    emission_matrix = build_emission_matrix(train_data)
+    voc_set = build_voc_set(train_data)
+    tag_set = build_tag_set(train_data)
+    transition_matrix = build_transition_matrix(train_data, tag_set)
+    emission_matrix = build_emission_matrix(train_data, tag_set, voc_set)
     matrices = [transition_matrix, emission_matrix]
     write_model_file(model_file, matrices)
     print('Finished...')

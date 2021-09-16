@@ -32,5 +32,9 @@ if __name__ == "__main__":
         for j in range(0, len(cur_ref_tags)):
             if cur_out_tags[j] == cur_ref_tags[j]:
                 matched_tags += 1
+            else:
+                # print('Correct tag : {} <-> Wrong tag : {}\n'.format(
+                #     cur_ref_tags[j], cur_out_tags[j]))
+                pass
 
     print("Accuracy=", float(matched_tags) / total_tags)

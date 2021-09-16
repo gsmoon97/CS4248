@@ -34,11 +34,10 @@ def build_voc_set(train_data):
 
 
 def build_transition_matrix(train_data, tag_set):
-    # transition_matrix = defaultdict(lambda: defaultdict(int))
     transition_matrix = {
         pre_tag: {cur_tag: 0 for cur_tag in tag_set} for pre_tag in tag_set
     }
-    # add <s> to previous tags (states) of the transition matrix
+    # add <s> as one of the previous tags (states) of the transition matrix
     transition_matrix['<s>'] = {cur_tag: 0 for cur_tag in tag_set}
     for tagged_sentence in train_data:
         for i in range(len(tagged_sentence)):
@@ -56,13 +55,16 @@ def build_transition_matrix(train_data, tag_set):
 
 
 def build_emission_matrix(train_data, tag_set, voc_set):
-    # emission_matrix = defaultdict(lambda: defaultdict(int))
     emission_matrix = {
         cur_tag: {cur_voc: 0 for cur_voc in voc_set} for cur_tag in tag_set
     }
     for tagged_sentence in train_data:
         for i in range(len(tagged_sentence)):
             emission_matrix[tagged_sentence[i][1]][tagged_sentence[i][0]] += 1
+    # add-one smoothing for emission probabilities
+    # for tag_idx in emission_matrix:
+    #     for word_idx in emission_matrix[tag_idx]:
+    #         emission_matrix[tag_idx][word_idx] += 1
     for cur_tag, cur_words in emission_matrix.items():
         total_count_for_cur_tag = sum(cur_words.values())
         for cur_word, count in emission_matrix[cur_tag].items():

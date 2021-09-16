@@ -26,6 +26,24 @@ def read_test_file(test_file):
 def run_tagger(test_sentence, transition_matrix, emission_matrix):
     tags = list(transition_matrix.keys())
     tags.remove('<s>')
+    states = []
+    # for i, word in enumerate(test_sentence):
+    #     p = []
+    #     for tag in tags:
+    #         if i == 0:
+    #             transition_p = transition_matrix['<s>'][tag]
+    #         else:
+    #             transition_p = transition_matrix[states[i-1]][tag]
+    #         if word not in emission_matrix[tag]:
+    #             emission_p = 0
+    #         else:
+    #             emission_p = emission_matrix[tag][word]
+    #         state_p = transition_p * emission_p
+    #         p.append(state_p)
+    #     pmax = max(p)
+    #     max_state = tags[p.index(pmax)]
+    #     states.append(max_state)
+    # print(list(zip(test_sentence, states)))
     back_pointers = np.zeros((len(test_sentence), len(tags)))
     state_probs = np.zeros((len(test_sentence), len(tags)))
     # initialize probabilities for the first word
@@ -41,21 +59,26 @@ def run_tagger(test_sentence, transition_matrix, emission_matrix):
     for i in range(1, len(test_sentence)):
         for (j, tag) in enumerate(tags):
             word = test_sentence[i]
-            # print('word : {}'.format(word))
-            # compare probabilities for different previous tags
+            # compare probabilities for all previous states (tags)
             combined_probs = np.array([prev_tag_prob * transition_matrix[tags[prev_tag_idx]][tag]
                                        for prev_tag_idx, prev_tag_prob in enumerate(state_probs[i - 1])])
-            # print('combined probs : {}'.format(combined_probs))
             max_idx = np.argmax(combined_probs)
             max_prob = max(combined_probs)
             back_pointers[i][j] = max_idx
             # compute emission probability
             if word not in emission_matrix[tag]:
+                # handle unknown words
                 emission_prob = 0
             else:
                 emission_prob = emission_matrix[tag][word]
-    print(state_probs)
-    print(np.argmax(state_probs[-1]))
+            state_probs[i][j] = max_prob * emission_prob
+    tag_idx = np.argmax(state_probs[-1])
+    result_tags = []
+    for pointers in back_pointers[::-1]:
+        result_tags.append(tags[tag_idx])
+        tag_idx = int(pointers[tag_idx])
+    result_tags.reverse()
+    print(list(zip(test_sentence, result_tags)))
     return
 
 

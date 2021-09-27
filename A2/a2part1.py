@@ -21,16 +21,14 @@ def question3(a, b):
     """
     Define a function to compute 2*a+b
     """
-
-    return None
+    return 2 * a + b
 
 
 def question4(a):
     """
     Define a function to get the first column from a 2-dimensional tensor
     """
-
-    return None
+    return a[:, 0]
 
 
 def question5(data):
@@ -38,8 +36,7 @@ def question5(data):
     Define a function to combine a list of tensors into a new tensor at
     the 0-th dimension, and transpose the 0-th dimension with the 1st dimension
     """
-
-    return None
+    return torch.transpose(torch.cat(data, dim=0), 0, 1)
 
 
 def question6(data):
@@ -47,16 +44,14 @@ def question6(data):
     Define a function to combine a list of 1-D tensors with different lengths
     into a new tensor by padding the shorter tensors with 0 on the right side
     """
-
-    return None
+    return torch.nn.utils.rnn.pad_sequence(data, batch_first=True)
 
 
 def question7(w, x, b):
     """
     Define a function that calculates w*x + b
     """
-
-    return None
+    return (w @ x) + b
 
 
 def question8(w, x, b):
@@ -65,8 +60,7 @@ def question8(w, x, b):
 
     DO NOT use loop, list comprehension, or any similar operations. 
     """
-
-    return None
+    return torch.bmm(w, x) + b
 
 
 def question9(x):
@@ -74,8 +68,7 @@ def question9(x):
     Given a 3-D tensor x (b, n, m), calculate the mean
     along dimension 1 without accounting for the 0-values. 
     """
-
-    return None
+    return x.sum(dim=1) / x.count_nonzero(dim=1)
 
 
 def question10(pairs):
@@ -83,8 +76,7 @@ def question10(pairs):
     Define a funtion that calculates the dot product of pairs of vectors.
     You can use the functions from previous questions.
     """
-
-    return None
+    return torch.tensor([torch.tensor(pair[0]) @ torch.tensor(pair[1]) for pair in pairs])
 
 
 def main():

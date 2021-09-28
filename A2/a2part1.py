@@ -36,7 +36,7 @@ def question5(data):
     Define a function to combine a list of tensors into a new tensor at
     the 0-th dimension, and transpose the 0-th dimension with the 1st dimension
     """
-    return torch.transpose(torch.cat(data, dim=0), 0, 1)
+    return torch.transpose(torch.stack(data, dim=0), 0, 1)
 
 
 def question6(data):

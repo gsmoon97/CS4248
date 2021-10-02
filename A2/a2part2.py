@@ -33,19 +33,27 @@ class LangDataset(Dataset):
         """
         self.texts = None
         with open(text_path, 'r') as file:
-            self.texts = [text for text in file]
+            self.texts = [text.strip() for text in file]
         self.labels = None
         if label_path:
             with open(label_path, 'r') as file:
-                self.texts = [label for label in file]
+                self.labels = [label.strip() for label in file]
         self.vocab = None
         if vocab:
             self.vocab = vocab
         else:
-            vocab = set()
+            self.vocab = set()
             for text in self.texts:
                 for i in range(len(text) - 1):
-                    text[i]
+                    first = text[i]
+                    second = text[i+1]
+                    if first.isalpha() and second.isalpha():
+                        # add only letters to the vocabulary (exclude punctuations, digits, etc.)
+                        self.vocab.add(first + second)
+        self.bigram_to_idx = {bigram: i for (i, bigram)
+                              in enumerate(self.vocab)}
+        self.label_to_idx = {label: i for (i, label)
+                             in enumerate(set(self.labels))}
 
     def vocab_size(self):
         """
@@ -72,9 +80,19 @@ class LangDataset(Dataset):
 
         DO NOT pad the tensor here, do it at the collator function.
         """
-        text = self.texts[i]
-        label = self.labels[i]
-
+        # find the indices of the corresponding bigrams
+        raw_text = self.texts[i]
+        raw_bigrams = []
+        for i in range(len(raw_text) - 1):
+            first = raw_text[i]
+            second = raw_text[i+1]
+            if first.isalpha() and second.isalpha():
+                # consider only letters for the bigram (exclude punctuations, digits, etc.)
+                raw_bigrams.append(self.bigram_to_idx[first + second])
+        text = torch.LongTensor(raw_bigrams)
+        # find the index of the corresponding label
+        raw_label = self.labels[i]
+        label = torch.LongTensor([self.label_to_idx[raw_label]])
         return text, label
 
 
@@ -88,11 +106,31 @@ class Model(nn.Module):
     def __init__(self, num_vocab, num_class, dropout=0.3):
         super().__init__()
         # define your model here
+        # embedding layer
+        dimension_d = 100  # temporary
+        dimension_m = 50  # temporary
+        self.embeddings = nn.Embedding(num_vocab, dimension_d)
+        # first feed-forward layer (hidden)
+        self.linear1 = nn.Linear(dimension_d, dimension_m)
+        # dropout layer
+        self.dropout = nn.Dropout(dropout)
+        # second feed-forward layer (final)
+        self.linear2 = nn.Linear(dimension_m, num_class)
 
     def forward(self, x):
         # define the forward function here
-
-        return
+        # obtain the corresponding embedding vector for the given bigram from the lookup table (embedding matrix)
+        emb_vectors = [self.embeddings(x_i) for x_i in x]
+        # average bigram embeddings to obtain a single vector
+        input_vector = emb_vectors.mean(dim=0)
+        # feed the input vector to the first layer (hidden)
+        # apply ReLU activation function to obtain the hidden vector
+        hidden_vector = F.relu(self.linear1(input_vector))
+        # apply dropout to the hidden vector (during training)
+        dropped_hidden_vector = self.dropout(hidden_vector)
+        # feed the dropped-out hidden vector to the second layer (final)
+        output_vector = self.linear2(dropped_hidden_vector)
+        return output_vector
 
 
 def collator(batch):
@@ -102,9 +140,10 @@ def collator(batch):
         texts: a tensor that combines all the text in the mini-batch, pad with 0
         labels: a tensor that combines all the labels in the mini-batch
     """
-    texts = None
-    labels = None
-
+    raw_texts = [ex[0] for ex in batch]
+    raw_labels = [ex[1] for ex in batch]
+    texts = torch.nn.utils.rnn.pad_sequence(raw_texts, batch_first=True)
+    labels = torch.LongTensor(raw_labels)
     return texts, labels
 
 
@@ -118,14 +157,14 @@ def train(model, dataset, batch_size, learning_rate, num_epoch, device='cpu', mo
 
     # assign these variables
     criterion = None
-    optimizer = None
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
     start = datetime.datetime.now()
     for epoch in range(num_epoch):
         model.train()
         running_loss = 0.0
         for step, data in enumerate(data_loader, 0):
-            # get the inputs; data is a tuple of (inputs, labels
+            # get the inputs; data is a tuple of (inputs, labels)
             texts = data[0].to(device)
             labels = data[1].to(device)
 

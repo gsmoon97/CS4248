@@ -38,22 +38,30 @@ class LangDataset(Dataset):
         if label_path:
             with open(label_path, 'r') as file:
                 self.labels = [label.strip() for label in file]
+            self.label_class = list(set(self.labels))
+            self.label_class_to_idx = {label_class: i for (i, label_class)
+                                       in enumerate(self.label_class)}
+        else:
+            if vocab:
+                self.label_class = vocab[1]
         self.vocab = None
         if vocab:
-            self.vocab = vocab
+            self.vocab = vocab[0]
         else:
-            self.vocab = set()
+            char_dict = {}
             for text in self.texts:
-                for i in range(len(text) - 1):
-                    first = text[i]
-                    second = text[i+1]
-                    if first.isalpha() and second.isalpha():
-                        # add only letters to the vocabulary (exclude punctuations, digits, etc.)
-                        self.vocab.add(first + second)
-        self.bigram_to_idx = {bigram: i for (i, bigram)
+                for i in range(len(text)):
+                    if text[i].isalpha():
+                        # count occurrence of each character (count for only letters)
+                        char_dict[text[i]] = char_dict.get(text[i], 0) + 1
+            # only include characters with 5+ occurences to the character list
+            char_list = [char for char, count in char_dict.items()
+                         if count >= 5]
+            # build vocabulary of character bigrams using character list
+            self.vocab = [x + y for x in char_list for y in char_list]
+        # start index from 1 (index 0 reserved for <UNK>)
+        self.bigram_to_idx = {bigram: i + 1 for (i, bigram)
                               in enumerate(self.vocab)}
-        self.label_to_idx = {label: i for (i, label)
-                             in enumerate(set(self.labels))}
 
     def vocab_size(self):
         """
@@ -62,7 +70,7 @@ class LangDataset(Dataset):
             num_class: number of class labels
         """
         num_vocab = len(self.vocab)
-        num_class = len(set(self.labels))
+        num_class = len(self.label_class)
         return num_vocab, num_class
 
     def __len__(self):
@@ -83,16 +91,20 @@ class LangDataset(Dataset):
         # find the indices of the corresponding bigrams
         raw_text = self.texts[i]
         raw_bigrams = []
-        for i in range(len(raw_text) - 1):
-            first = raw_text[i]
-            second = raw_text[i+1]
+        for idx in range(len(raw_text) - 1):
+            first = raw_text[idx]
+            second = raw_text[idx+1]
             if first.isalpha() and second.isalpha():
                 # consider only letters for the bigram (exclude punctuations, digits, etc.)
-                raw_bigrams.append(self.bigram_to_idx[first + second])
+                # if <UNK>, index is 0
+                raw_bigrams.append(self.bigram_to_idx.get(first + second, 0))
         text = torch.LongTensor(raw_bigrams)
         # find the index of the corresponding label
-        raw_label = self.labels[i]
-        label = torch.LongTensor([self.label_to_idx[raw_label]])
+        if self.labels:
+            raw_label = self.labels[i]
+            label = torch.LongTensor([self.label_class_to_idx[raw_label]])
+        else:
+            label = torch.LongTensor([-1])
         return text, label
 
 
@@ -107,9 +119,10 @@ class Model(nn.Module):
         super().__init__()
         # define your model here
         # embedding layer
-        dimension_d = 100  # temporary
-        dimension_m = 50  # temporary
-        self.embeddings = nn.Embedding(num_vocab, dimension_d)
+        dimension_d = 16  # arbitrary
+        dimension_m = 16  # arbitrary
+        # index 0 gets embedded to zero vector
+        self.embeddings = nn.Embedding(num_vocab, dimension_d, padding_idx=0)
         # first feed-forward layer (hidden)
         self.linear1 = nn.Linear(dimension_d, dimension_m)
         # dropout layer
@@ -119,10 +132,12 @@ class Model(nn.Module):
 
     def forward(self, x):
         # define the forward function here
-        # obtain the corresponding embedding vector for the given bigram from the lookup table (embedding matrix)
-        emb_vectors = [self.embeddings(x_i) for x_i in x]
-        # average bigram embeddings to obtain a single vector
-        input_vector = emb_vectors.mean(dim=0)
+        # obtain the corresponding embedding vectors for the given bigram from the lookup table (embedding matrix)
+        # take as input, a mini-batch of examples represented by bigram indices
+        emb_vectors = self.embeddings(x)
+        # average bigram embeddings to obtain a single vector for each text (consider only non-zero paddings)
+        input_vector = (emb_vectors.sum(dim=1)
+                        / emb_vectors.count_nonzero(dim=1))
         # feed the input vector to the first layer (hidden)
         # apply ReLU activation function to obtain the hidden vector
         hidden_vector = F.relu(self.linear1(input_vector))
@@ -156,7 +171,7 @@ def train(model, dataset, batch_size, learning_rate, num_epoch, device='cpu', mo
         dataset, batch_size=batch_size, collate_fn=collator, shuffle=True)
 
     # assign these variables
-    criterion = None
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
     start = datetime.datetime.now()
@@ -167,19 +182,19 @@ def train(model, dataset, batch_size, learning_rate, num_epoch, device='cpu', mo
             # get the inputs; data is a tuple of (inputs, labels)
             texts = data[0].to(device)
             labels = data[1].to(device)
-
             # zero the parameter gradients
-
+            optimizer.zero_grad()
             # do forward propagation
-
+            output = model(texts)
             # do loss calculation
-
+            loss = criterion(output, labels)
             # do backward propagation
-
+            loss.backward()
             # do parameter optimization step
-
+            optimizer.step()
             # calculate running loss value for non padding
-
+            loss_batch = loss.item()
+            running_loss += (loss_batch - running_loss) / (step + 1)
             # print loss value every 100 steps and reset the running loss
             if step % 100 == 99:
                 print('[%d, %5d] loss: %.3f' %
@@ -191,7 +206,12 @@ def train(model, dataset, batch_size, learning_rate, num_epoch, device='cpu', mo
     # save the model weight in the checkpoint variable
     # and dump it to system on the model_path
     # tip: the checkpoint can contain more than just the model
-    checkpoint = None
+    checkpoint = {
+        'learning_rate': learning_rate,
+        'model_state_dict': model.state_dict(),
+        'vocab': [dataset.vocab, dataset.label_class],
+        'lang_map': dataset.label_class_to_idx
+    }
     torch.save(checkpoint, model_path)
 
     print('Model saved in ', model_path)
@@ -209,15 +229,20 @@ def test(model, dataset, class_map, device='cpu'):
             texts = data[0].to(device)
             outputs = model(texts).cpu()
             # get the label predictions
+            for output in outputs:
+                softmax_output = F.softmax(output, dim=0)
+                label_class_idx = torch.argmax(softmax_output).item()
+                labels.append(class_map[label_class_idx])
 
     return labels
 
 
 def main(args):
-    if torch.cuda.is_available():
-        device_str = 'cuda:{}'.format(0)
-    else:
-        device_str = 'cpu'
+    # if torch.cuda.is_available():
+    #     device_str = 'cuda:{}'.format(0)
+    # else:
+    #     device_str = 'cpu'
+    device_str = 'cpu'
     device = torch.device(device_str)
 
     assert args.train or args.test, "Please specify --train or --test"
@@ -228,20 +253,26 @@ def main(args):
         model = Model(num_vocab, num_class).to(device)
 
         # you may change these hyper-parameters
-        learning_rate = None
-        batch_size = None
-        num_epochs = None
+        learning_rate = 0.1
+        batch_size = 5
+        num_epochs = 30
 
         train(model, dataset, batch_size, learning_rate,
               num_epochs, device, args.model_path)
     if args.test:
         assert args.model_path is not None, "Please provide the model to test using --model_path argument"
+        # load checkpoint
+        checkpoint = torch.load(args.model_path)
         # the lang map should map the class index to the language id (e.g. eng, fra, etc.)
-        lang_map = None
-
+        lang_map = {idx: lang for lang, idx
+                    in checkpoint['lang_map'].items()}
         # create the test dataset object using LangDataset class
-
+        vocab = checkpoint['vocab']
+        dataset = LangDataset(args.text_path, vocab=vocab)
         # initialize and load the model
+        num_vocab, num_class = dataset.vocab_size()
+        model = Model(num_vocab, num_class)
+        model.load_state_dict(checkpoint['model_state_dict'])
 
         # run the prediction
         preds = test(model, dataset, lang_map, device)

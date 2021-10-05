@@ -238,11 +238,10 @@ def test(model, dataset, class_map, device='cpu'):
 
 
 def main(args):
-    # if torch.cuda.is_available():
-    #     device_str = 'cuda:{}'.format(0)
-    # else:
-    #     device_str = 'cpu'
-    device_str = 'cpu'
+    if torch.cuda.is_available():
+        device_str = 'cuda:{}'.format(0)
+    else:
+        device_str = 'cpu'
     device = torch.device(device_str)
 
     assert args.train or args.test, "Please specify --train or --test"
@@ -271,7 +270,7 @@ def main(args):
         dataset = LangDataset(args.text_path, vocab=vocab)
         # initialize and load the model
         num_vocab, num_class = dataset.vocab_size()
-        model = Model(num_vocab, num_class)
+        model = Model(num_vocab, num_class).to(device)
         model.load_state_dict(checkpoint['model_state_dict'])
 
         # run the prediction

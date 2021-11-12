@@ -119,9 +119,8 @@ def train(data_path, out_path, num_epochs):
     train_loss_set = []
 
     # Number of training epochs (authors recommend between 2 and 4)
-    EPOCHS = num_epochs
     # trange is a tqdm wrapper around the normal python range
-    for _ in trange(EPOCHS, desc="Epoch"):
+    for _ in trange(num_epochs, desc="Epoch"):
         # Training
         # Set our model to training mode (as opposed to evaluation mode)
         model.train()

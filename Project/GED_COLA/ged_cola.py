@@ -191,7 +191,7 @@ def train(data_path, out_path, num_epochs):
 def main():
     data_path = sys.argv[1]
     out_path = sys.argv[2]
-    num_epochs = sys.argv[3]
+    num_epochs = int(sys.argv[3])
     train(data_path, out_path, num_epochs)
 
 

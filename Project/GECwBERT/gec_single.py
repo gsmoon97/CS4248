@@ -149,8 +149,7 @@ def create_spelling_set(org_text, modelGED):
     sent = org_text.lower().strip().split()
 
     nlp = spacy.load("en_core_web_sm")
-    # proc_sent = nlp.tokenizer.tokens_from_list(sent)
-    proc_sent = nlp.tokenizer.__init__(sent)
+    proc_sent = nlp.tokenizer.tokens_from_list(sent)
     nlp.tagger(proc_sent)
 
     sentences = []

@@ -404,6 +404,7 @@ def predict(model_path, data_path):
             sum_of_exps = sum(exps)
             softmax = [j/sum_of_exps for j in exps]
             if softmax[1] > max:
+                max = softmax[1]
                 max_idx = i
 
         # output the sentence with the highest probability

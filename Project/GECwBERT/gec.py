@@ -415,6 +415,7 @@ def predict(model_paths):
             sum_of_exps = sum(exps)
             softmax = [j/sum_of_exps for j in exps]
             if softmax[1] > max:
+                max = softmax[1]
                 max_idx = i
 
         print('Predicting for "{}"\n'.format(input_sentence))

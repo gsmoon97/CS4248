@@ -77,7 +77,7 @@ def download_file_from_google_drive(id, destination):
     save_response_content(response, destination)
 
 
-def check_GE(sents, modelGED):
+def check_GE(sents, modelGEDs):
     """Check of the input sentences have grammatical errors
     :param list: list of sentences
     :return: error, probabilities
@@ -121,28 +121,32 @@ def check_GE(sents, modelGED):
     prediction_masks = torch.tensor(attention_masks)
     prediction_labels = torch.tensor(labels)
 
-    with torch.no_grad():
-        # Forward pass, calculate logit predictions
-        logits = modelGED(prediction_inputs, token_type_ids=None,
-                          attention_mask=prediction_masks)
+    for modelGED in modelGEDs:
+        with torch.no_grad():
+            # Forward pass, calculate logit predictions
+            logits = modelGED(prediction_inputs, token_type_ids=None,
+                              attention_mask=prediction_masks)
 
-    # Move logits and labels to CPU
-    logits = logits.detach().cpu().numpy()
-    # label_ids = b_labels.to("cpu").numpy()
+        # Move logits and labels to CPU
+        logits = logits.detach().cpu().numpy()
+        # label_ids = b_labels.to("cpu").numpy()
 
-    # Store predictions and true labels
-    predictions.append(logits)
-    # true_labels.append(label_ids)
+        # Store predictions and true labels
+        predictions.append(logits)
+        # true_labels.append(label_ids)
+        print('logits:\n{}\n'.format(logits))
+        print('predictions:\n{}\n'.format(predictions))
 
-    flat_predictions = [item for sublist in predictions for item in sublist]
-    prob_vals = flat_predictions
-    flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
+    prob_vals = np.mean([np.array(pred) for pred in predictions], axis=0)
+    print('prob_vals:\n{}\n'.format(prob_vals))
+    flat_predictions = np.argmax(prob_vals, axis=1).flatten()
+    print('flat_predictions:\n{}\n'.format(flat_predictions))
     # flat_true_labels = [item for sublist in true_labels for item in sublist]
 
     return flat_predictions, prob_vals
 
 
-def create_spelling_set(org_text, modelGED):
+def create_spelling_set(org_text, modelGEDs):
     """ Create a set of sentences which have possible corrected spellings
     """
 
@@ -170,7 +174,7 @@ def create_spelling_set(org_text, modelGED):
     new_sentences = []
 
     for sent in spelling_sentences:
-        no_error, prob_val = check_GE([sent], modelGED)
+        no_error, prob_val = check_GE([sent], modelGEDs)
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
@@ -188,7 +192,7 @@ def create_spelling_set(org_text, modelGED):
     return spelling_sentences
 
 
-def create_grammar_set(spelling_sentences, modelGED):
+def create_grammar_set(spelling_sentences, modelGEDs):
     """ create a new set of sentences with deleted determiners, 
         prepositions & helping verbs
     """
@@ -206,7 +210,7 @@ def create_grammar_set(spelling_sentences, modelGED):
             text = " ".join(new_sent)
 
             # retain new sentences which have a minimum chance of correctness using BERT GED
-            no_error, prob_val = check_GE([text], modelGED)
+            no_error, prob_val = check_GE([text], modelGEDs)
             exps = [np.exp(i) for i in prob_val[0]]
             sum_of_exps = sum(exps)
             softmax = [j/sum_of_exps for j in exps]
@@ -246,7 +250,7 @@ def create_mask_set(spelling_sentences):
     return sentences
 
 
-def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
+def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
     """ check grammar for the input sentences
     """
 
@@ -326,7 +330,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
         new_sent = " ".join(text)
 
         # retain new sentences which have a minimum chance of correctness using BERT GED
-        no_error, prob_val = check_GE([new_sent], modelGED)
+        no_error, prob_val = check_GE([new_sent], modelGEDs)
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
@@ -388,12 +392,12 @@ def predict(model_paths, data_path, start, end):
         spelling_sentences = create_spelling_set(
             input_sentence, modelGEDs[0])
         grammar_sentences = create_grammar_set(
-            spelling_sentences, modelGEDs[0])
+            spelling_sentences, modelGEDs)
         mask_sentences = create_mask_set(
             grammar_sentences)
 
         candidate_sentences = check_grammar(
-            input_sentence, mask_sentences, grammar_sentences, model, modelGEDs[0])
+            input_sentence, mask_sentences, grammar_sentences, model, modelGEDs)
 
         print('Processing {} possibilities'.format(len(candidate_sentences)))
 
@@ -403,12 +407,7 @@ def predict(model_paths, data_path, start, end):
             print('Output : (no change)\n')
             continue
 
-        prob_vals = []
-        for model in modelGEDs:
-            no_error, prob_val = check_GE(candidate_sentences, model)
-            prob_vals.append(prob_val)
-
-        prob_val = np.mean([np.array(prob) for prob in prob_vals], axis=0)
+        no_error, prob_val = check_GE(candidate_sentences, modelGEDs)
 
         max = 0
         max_idx = 0

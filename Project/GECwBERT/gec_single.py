@@ -130,8 +130,6 @@ def check_GE(sents, modelGED):
     logits = logits.detach().cpu().numpy()
     # label_ids = b_labels.to("cpu").numpy()
 
-    print('logtis:\n{}\n'.format(logits))
-
     # Store predictions and true labels
     predictions.append(logits)
     # true_labels.append(label_ids)

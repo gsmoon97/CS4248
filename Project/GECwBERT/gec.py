@@ -345,7 +345,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
     return spelling_sentences
 
 
-def predict(model_paths, data_path):
+def predict(model_paths, data_path, start, end):
     # Check to confirm that GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
@@ -376,7 +376,7 @@ def predict(model_paths, data_path):
         input_sentence = ' '.join(input_tokens)
         input_sentences.append(input_sentence)
 
-    input_sentences = input_sentences[:5]
+    input_sentences = input_sentences[start:end]
 
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
@@ -441,9 +441,11 @@ def predict(model_paths, data_path):
 def main():
     no_of_models = len(sys.argv) - 2
     print('Detected {} GED models\n'.format(no_of_models))
-    model_paths = sys.argv[1:-1]
-    data_path = sys.argv[-1]
-    predict(model_paths, data_path)
+    model_paths = sys.argv[1:-3]
+    data_path = sys.argv[-3]
+    start = int(sys.argv[-2])
+    end = int(sys.argv[-1])
+    predict(model_paths, data_path, start, end)
     print('Successfully finished prediction\n')
 
 

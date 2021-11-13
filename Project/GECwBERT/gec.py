@@ -13,10 +13,12 @@ from tqdm import tqdm
 import numpy as np
 
 # Load pre-trained model tokenizer (vocabulary)
-tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
+tokenizer = BertTokenizer.from_pretrained(
+    'bert-base-cased', do_lower_case=False)
 
 # Load pre-trained model tokenizer (vocabulary)
-tokenizerLarge = BertTokenizer.from_pretrained('bert-large-cased')
+tokenizerLarge = BertTokenizer.from_pretrained(
+    'bert-large-cased', do_lower_case=False)
 
 # gn_GB dictionary for hunspell
 gb = Hunspell("en_GB-large", hunspell_data_dir=".")
@@ -287,8 +289,8 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
         mask_index = (tokens_tensor == mask_token).nonzero()[0][1].item()
         # predicted token
         predicted_index = torch.argmax(predictions[0, mask_index]).item()
-        predicted_token = tokenizerLarge.convert_ids_to_tokens([predicted_index])[
-            0]
+        predicted_token = tokenizerLarge.convert_ids_to_tokens(
+            [predicted_index])[0]
 
         text = sent.strip().split()
         mask_index = text.index('[MASK]')
@@ -343,7 +345,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
     return spelling_sentences
 
 
-def predict(model_paths, out_path):
+def predict(model_paths):
     # Check to confirm that GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
@@ -354,7 +356,7 @@ def predict(model_paths, out_path):
     for model_path in model_paths:
         # load previously trained BERT Grammar Error Detection model
         modelGED = BertForSequenceClassification.from_pretrained(
-            "bert-base-cased", num_labels=2)
+            "bert-base-cased", do_lower_case=False, num_labels=2)
 
         # restore model
         modelGED.load_state_dict(torch.load(model_path))
@@ -362,7 +364,8 @@ def predict(model_paths, out_path):
         modelGEDs.append(modelGED)
 
     # Load pre-trained model (weights) for Masked Language Model (MLM)
-    model = BertForMaskedLM.from_pretrained('bert-large-cased')
+    model = BertForMaskedLM.from_pretrained(
+        'bert-large-cased', do_lower_case=False)
     model.eval()
 
     # preprocessing input sentences
@@ -381,13 +384,15 @@ def predict(model_paths, out_path):
     output_sentences = []
 
     for input_sentence in input_sentences:
-        spelling_sentences = create_spelling_set(input_sentence, modelGEDs[0])
+        spelling_sentences = create_spelling_set(
+            input_sentence, modelGEDs[0])
         grammar_sentences = create_grammar_set(
             spelling_sentences, modelGEDs[0])
-        mask_sentences = create_mask_set(grammar_sentences, modelGEDs[0])
+        mask_sentences = create_mask_set(
+            grammar_sentences, modelGEDs[0])
 
         candidate_sentences = check_grammar(
-            input_sentence, mask_sentences, grammar_sentences)
+            input_sentence, mask_sentences, grammar_sentences, model, modelGEDs[0])
 
         if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.995)
             output_sentences.append(input_sentence)
@@ -420,10 +425,11 @@ def predict(model_paths, out_path):
 
 
 def main():
-    no_of_models = len(sys.argv)
-    model_paths = sys.argv
-    print('Detected {} GED models'.format(no_of_models))
+    no_of_models = len(sys.argv) - 1
+    model_paths = sys.argv[1:]
+    print('Detected {} GED models\n'.format(no_of_models))
     predict(model_paths)
+    print('Successfully finished prediction\n')
 
 
 if __name__ == "__main__":

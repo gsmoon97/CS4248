@@ -146,7 +146,7 @@ def create_spelling_set(org_text, modelGEDs):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if(softmax[1] > 0.6):
+        if(len(softmax) > 1 and softmax[1] > 0.6):
             new_sentences.append(sent)
 
     # if no corrections, append the original sentence
@@ -182,7 +182,7 @@ def create_grammar_set(spelling_sentences, modelGEDs):
             exps = [np.exp(i) for i in prob_val[0]]
             sum_of_exps = sum(exps)
             softmax = [j/sum_of_exps for j in exps]
-            if(softmax[1] > 0.6):
+            if(len(softmax) > 1 and softmax[1] > 0.6):
                 new_sentences.append(text)
 
     # eliminate dupllicates
@@ -302,8 +302,8 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        print('{} : {}\n'.format(new_sent, softmax[1]))
-        if no_error and softmax[1] > 0.9:
+        if no_error and len(softmax) > 1 and softmax[1] > 0.95:
+            print('{} : {}\n'.format(new_sent, softmax[1]))
             print("*", end="")
             new_sentences.append(new_sent)
 
@@ -311,9 +311,9 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
 
     # remove duplicate suggestions
     spelling_sentences = []
-    # [spelling_sentences.append(sent) for sent in new_sentences]
+    [spelling_sentences.append(sent) for sent in new_sentences]
     spelling_sentences = list(dict.fromkeys(spelling_sentences))
-    # spelling_sentences
+    spelling_sentences
 
     return spelling_sentences
 
@@ -370,7 +370,7 @@ def predict(model_paths, data_path, start, end):
 
         print('Processing {} possibilities'.format(len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.9)
+        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.95)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')
@@ -385,7 +385,7 @@ def predict(model_paths, data_path, start, end):
             exps = [np.exp(i) for i in prob_val[i]]
             sum_of_exps = sum(exps)
             softmax = [j/sum_of_exps for j in exps]
-            if softmax[1] > max:
+            if len(softmax) > 1 and softmax[1] > max:
                 max = softmax[1]
                 max_idx = i
 

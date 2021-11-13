@@ -386,6 +386,7 @@ def predict(model_paths):
     output_sentences = []
 
     for input_sentence in input_sentences:
+        print('Input : {}'.format(input_sentence))
         spelling_sentences = create_spelling_set(
             input_sentence, modelGEDs[0])
         grammar_sentences = create_grammar_set(
@@ -396,8 +397,12 @@ def predict(model_paths):
         candidate_sentences = check_grammar(
             input_sentence, mask_sentences, grammar_sentences, model, modelGEDs[0])
 
+        print('Processing {0} possibilities'.format(len(candidate_sentences)))
+
         if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.995)
-            output_sentences.append(input_sentence)
+            output_sentence = input_sentence
+            output_sentences.append(output_sentence)
+            print('Output : (no change)\n')
             continue
 
         prob_vals = []
@@ -418,11 +423,10 @@ def predict(model_paths):
                 max = softmax[1]
                 max_idx = i
 
-        print('Predicting for "{}"\n'.format(input_sentence))
         # output the sentence with the highest probability
         output_sentence = candidate_sentences[max_idx]
         output_sentences.append(output_sentence)
-        print('\t=>{}\n'.format(output_sentence))
+        print('Output : {}\n'.format(output_sentence))
 
     # create two parallel files for input and output sentences
     with open("input.txt", "x") as f:

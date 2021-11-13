@@ -355,13 +355,13 @@ def predict(model_path, data_path):
     modelGED = BertForSequenceClassification.from_pretrained(
         "bert-base-cased", num_labels=2)
 
-    # restore model
-    modelGED.load_state_dict(torch.load(model_path))
-    modelGED.eval()
+    # # restore model
+    # modelGED.load_state_dict(torch.load(model_path))
+    # modelGED.eval()
 
-    # Load pre-trained model (weights) for Masked Language Model (MLM)
-    model = BertForMaskedLM.from_pretrained('bert-large-cased')
-    model.eval()
+    # # Load pre-trained model (weights) for Masked Language Model (MLM)
+    # model = BertForMaskedLM.from_pretrained('bert-large-cased')
+    # model.eval()
 
     # preprocessing input sentences
     file = open(data_path).read().strip().split("\n\n")

@@ -390,7 +390,7 @@ def predict(model_paths, data_path, start, end):
     for input_sentence in input_sentences:
         print('Input : {}'.format(input_sentence))
         spelling_sentences = create_spelling_set(
-            input_sentence, modelGEDs[0])
+            input_sentence, modelGEDs)
         grammar_sentences = create_grammar_set(
             spelling_sentences, modelGEDs)
         mask_sentences = create_mask_set(

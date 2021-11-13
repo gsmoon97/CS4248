@@ -427,10 +427,10 @@ def predict(model_paths, data_path, start, end):
         print('Output : {}\n'.format(output_sentence))
 
     # create two parallel files for input and output sentences
-    with open("input.txt", "x") as f:
+    with open("input_{}_{}.txt".format(start, end), "x") as f:
         f.write("\n".join(input_sentences))
 
-    with open("output.txt", "w") as f:
+    with open("output_{}_{}.txt".format(start, end), "w") as f:
         f.write("\n".join(output_sentences))
 
     for out_sent in output_sentences:
@@ -439,9 +439,9 @@ def predict(model_paths, data_path, start, end):
 
 
 def main():
-    no_of_models = len(sys.argv) - 2
-    print('Detected {} GED models\n'.format(no_of_models))
     model_paths = sys.argv[1:-3]
+    no_of_models = len(model_paths)
+    print('Detected {} GED models\n'.format(len(no_of_models)))
     data_path = sys.argv[-3]
     start = int(sys.argv[-2])
     end = int(sys.argv[-1])

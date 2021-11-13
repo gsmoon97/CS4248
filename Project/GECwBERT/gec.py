@@ -10,6 +10,7 @@ from hunspell import Hunspell
 import spacy
 from tqdm import tqdm
 import numpy as np
+import logging
 
 # Load pre-trained model tokenizer (vocabulary)
 tokenizer = BertTokenizer.from_pretrained(
@@ -302,8 +303,9 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if no_error and len(softmax) > 1 and softmax[1] > 0.95:
+        if no_error and len(softmax) > 1 and softmax[1] > 0.995:
             print('{} : {}\n'.format(new_sent, softmax[1]))
+            logging.info('{} : {}\n'.format(new_sent, softmax[1]))
             print("*", end="")
             new_sentences.append(new_sent)
 
@@ -353,11 +355,14 @@ def predict(model_paths, data_path, start, end):
 
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
+    logging.info('Predicting for {} sentences from the input file'.format(
+        len(input_sentences)))
 
     output_sentences = []
 
     for input_sentence in input_sentences:
         print('Input : {}'.format(input_sentence))
+        logging.info('Input : {}'.format(input_sentence))
         spelling_sentences = create_spelling_set(
             input_sentence, modelGEDs)
         grammar_sentences = create_grammar_set(
@@ -369,11 +374,14 @@ def predict(model_paths, data_path, start, end):
             input_sentence, mask_sentences, grammar_sentences, model, modelGEDs)
 
         print('Processing {} possibilities'.format(len(candidate_sentences)))
+        logging.info('Processing {} possibilities'.format(
+            len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.95)
+        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.995)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')
+            logging.info('Output : (no change)\n')
             continue
 
         no_error, prob_val = check_GE(candidate_sentences, modelGEDs)
@@ -393,6 +401,7 @@ def predict(model_paths, data_path, start, end):
         output_sentence = candidate_sentences[max_idx]
         output_sentences.append(output_sentence)
         print('Output : {}\n'.format(output_sentence))
+        logging.info('Output : {}\n'.format(output_sentence))
 
     no_of_models = len(modelGEDs)
 
@@ -403,20 +412,20 @@ def predict(model_paths, data_path, start, end):
     with open("output_{}mod_{}_{}.txt".format(no_of_models, start, end), "w") as f:
         f.write("\n".join(output_sentences))
 
-    for out_sent in output_sentences:
-        print(out_sent)
-        print('\n')
-
 
 def main():
     model_paths = sys.argv[1:-3]
     no_of_models = len(model_paths)
-    print('Detected {} GED models\n'.format(no_of_models))
     data_path = sys.argv[-3]
     start = int(sys.argv[-2])
     end = int(sys.argv[-1])
+    logging.basicConfig(level=logging.INFO, file='log_{}mod_{}_{}.log'.format(
+        no_of_models, start, end))
+    print('Detected {} GED models\n'.format(no_of_models))
+    logging.info('Detected {} GED models\n'.format(no_of_models))
     predict(model_paths, data_path, start, end)
     print('Successfully finished prediction\n')
+    logging.info('Successfully finished prediction\n')
 
 
 if __name__ == "__main__":

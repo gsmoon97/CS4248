@@ -96,8 +96,8 @@ def check_GE(sents, modelGED):
     # Set the maximum sequence length. The longest sequence in our training set
     # is 47, but we'll leave room on the end anyway.
     # In the original paper, the authors used a length of 512.
-    MAX_LEN = max([len(text) for text in tokenized_texts])
-    # MAX_LEN = 50
+    # MAX_LEN = max([len(text) for text in tokenized_texts])
+    MAX_LEN = 128
 
     predictions = []
     true_labels = []

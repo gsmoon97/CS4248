@@ -391,7 +391,7 @@ def predict(model_paths):
         grammar_sentences = create_grammar_set(
             spelling_sentences, modelGEDs[0])
         mask_sentences = create_mask_set(
-            grammar_sentences, modelGEDs[0])
+            grammar_sentences)
 
         candidate_sentences = check_grammar(
             input_sentence, mask_sentences, grammar_sentences, model, modelGEDs[0])
@@ -424,10 +424,10 @@ def predict(model_paths):
         print('\t=>{}\n'.format(output_sentence))
 
     # create two parallel files for input and output sentences
-    with open("./out/input.txt", "x") as f:
+    with open("input.txt", "x") as f:
         f.write("\n".join(input_sentences))
 
-    with open("./out/output.txt", "w") as f:
+    with open("output.txt", "w") as f:
         f.write("\n".join(output_sentences))
 
 

@@ -351,6 +351,8 @@ def predict(model_path):
     n_gpu = torch.cuda.device_count()
     torch.cuda.get_device_name(0)
 
+    print(device)  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
     # load previously trained BERT Grammar Error Detection model
     modelGED = BertForSequenceClassification.from_pretrained(
         "bert-base-cased", num_labels=2)
@@ -359,10 +361,14 @@ def predict(model_path):
     modelGED.load_state_dict(torch.load(model_path))
     modelGED.eval()
 
+    print('ged model loaded')  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
     # Load pre-trained model (weights) for Masked Language Model (MLM)
     model = BertForMaskedLM.from_pretrained(
         'bert-large-cased', do_lower_case=False)
     model.eval()
+
+    print('mlm model loaded')  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
     # preprocessing input sentences
     file = open("./data/conll14st-preprocessed.m2").read().strip().split("\n\n")
@@ -373,8 +379,6 @@ def predict(model_path):
         input_tokens = input_tokens[1:]  # remove S from input sentence
         input_sentence = ' '.join(input_tokens)
         input_sentences.append(input_sentence)
-
-    input_sentences = input_sentences[:5]
 
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))

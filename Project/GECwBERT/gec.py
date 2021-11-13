@@ -419,7 +419,7 @@ def main():
     data_path = sys.argv[-3]
     start = int(sys.argv[-2])
     end = int(sys.argv[-1])
-    logging.basicConfig(level=logging.INFO, file='log_{}mod_{}_{}.log'.format(
+    logging.basicConfig(level=logging.INFO, filename='log_{}mod_{}_{}.log'.format(
         no_of_models, start, end))
     print('Detected {} GED models\n'.format(no_of_models))
     logging.info('Detected {} GED models\n'.format(no_of_models))

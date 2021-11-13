@@ -395,7 +395,7 @@ def predict(model_paths, data_path, start, end):
         candidate_sentences = check_grammar(
             input_sentence, mask_sentences, grammar_sentences, model, modelGEDs[0])
 
-        print('Processing {0} possibilities'.format(len(candidate_sentences)))
+        print('Processing {} possibilities'.format(len(candidate_sentences)))
 
         if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.99)
             output_sentence = input_sentence

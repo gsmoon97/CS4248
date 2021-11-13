@@ -134,9 +134,11 @@ def check_GE(sents, modelGED):
     predictions.append(logits)
     # true_labels.append(label_ids)
 
-    flat_predictions = [item for sublist in predictions for item in sublist]
-    prob_vals = flat_predictions
-    flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
+    temp = [item for sublist in predictions for item in sublist]
+    prob_vals = temp
+    print('prob_vals:\n{}\n'.format(prob_vals))
+    flat_predictions = np.argmax(temp, axis=1).flatten()
+    print('flat_predictions:\n{}\n'.format(flat_predictions))
     # flat_true_labels = [item for sublist in true_labels for item in sublist]
 
     return flat_predictions, prob_vals
@@ -391,7 +393,7 @@ def predict(model_path, data_path, start, end):
         candidate_sentences = check_grammar(
             input_sentence, mask_sentences, grammar_sentences, model, modelGED)
 
-        print('Processing {0} possibilities'.format(len(candidate_sentences)))
+        print('Processing {} possibilities'.format(len(candidate_sentences)))
 
         if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.99)
             output_sentence = input_sentence

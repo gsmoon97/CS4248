@@ -394,11 +394,13 @@ def predict(model_paths, data_path, start, end):
         output_sentences.append(output_sentence)
         print('Output : {}\n'.format(output_sentence))
 
+    no_of_models = len(modelGEDs)
+
     # create two parallel files for input and output sentences
-    with open("input_{}_{}.txt".format(start, end), "x") as f:
+    with open("input_{}mod_{}_{}.txt".format(no_of_models, start, end), "x") as f:
         f.write("\n".join(input_sentences))
 
-    with open("output_{}_{}.txt".format(start, end), "w") as f:
+    with open("output_{}mod_{}_{}.txt".format(no_of_models, start, end), "w") as f:
         f.write("\n".join(output_sentences))
 
     for out_sent in output_sentences:

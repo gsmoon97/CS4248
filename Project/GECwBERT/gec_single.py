@@ -418,13 +418,15 @@ def predict(model_path, data_path):
         print('Output : {}\n'.format(output_sentence))
 
     # create two parallel files for input and output sentences
-    with open("input.txt", "x") as f:
+    with open("input_single.txt", "x") as f:
         f.write("\n".join(input_sentences))
 
-    with open("output.txt", "w") as f:
+    with open("output_single.txt", "w") as f:
         f.write("\n".join(output_sentences))
 
-    print(output_sentences)
+    for out_sent in output_sentences:
+        print(out_sent)
+        print('\n')
 
 
 def main():

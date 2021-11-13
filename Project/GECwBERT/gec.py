@@ -357,15 +357,13 @@ def predict(model_paths, data_path):
         # load previously trained BERT Grammar Error Detection model
         modelGED = BertForSequenceClassification.from_pretrained(
             "bert-base-cased", num_labels=2)
-
         # restore model
         modelGED.load_state_dict(torch.load(model_path))
         modelGED.eval()
         modelGEDs.append(modelGED)
 
     # Load pre-trained model (weights) for Masked Language Model (MLM)
-    model = BertForMaskedLM.from_pretrained(
-        'bert-large-cased', do_lower_case=False)
+    model = BertForMaskedLM.from_pretrained('bert-large-cased')
     model.eval()
 
     # preprocessing input sentences
@@ -442,9 +440,7 @@ def main():
     no_of_models = len(sys.argv) - 2
     print('Detected {} GED models\n'.format(no_of_models))
     model_paths = sys.argv[1:-1]
-    print(model_paths)
     data_path = sys.argv[-1]
-    print(data_path)
     predict(model_paths, data_path)
     print('Successfully finished prediction\n')
 

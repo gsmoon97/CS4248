@@ -375,48 +375,48 @@ def predict(model_path, data_path):
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
 
-    # output_sentences = []
+    output_sentences = []
 
-    # for input_sentence in input_sentences:
-    #     print('Predicting for "{}"\n'.format(input_sentence))
+    for input_sentence in input_sentences:
+        print('Predicting for "{}"\n'.format(input_sentence))
 
-    #     spelling_sentences = create_spelling_set(
-    #         input_sentence, modelGED)
-    #     grammar_sentences = create_grammar_set(
-    #         spelling_sentences, modelGED)
-    #     mask_sentences = create_mask_set(
-    #         grammar_sentences, modelGED)
+        spelling_sentences = create_spelling_set(
+            input_sentence, modelGED)
+        grammar_sentences = create_grammar_set(
+            spelling_sentences, modelGED)
+        mask_sentences = create_mask_set(
+            grammar_sentences, modelGED)
 
-    #     candidate_sentences = check_grammar(
-    #         input_sentence, mask_sentences, grammar_sentences, model, modelGED)
+        candidate_sentences = check_grammar(
+            input_sentence, mask_sentences, grammar_sentences, model, modelGED)
 
-    #     if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.995)
-    #         output_sentences.append(input_sentence)
-    #         continue
+        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.995)
+            output_sentences.append(input_sentence)
+            continue
 
-    #     no_error, prob_val = check_GE(candidate_sentences, modelGED)
+        no_error, prob_val = check_GE(candidate_sentences, modelGED)
 
-    #     max = 0
-    #     max_idx = 0
+        max = 0
+        max_idx = 0
 
-    #     for i in range(len(prob_val)):
-    #         exps = [np.exp(i) for i in prob_val[i]]
-    #         sum_of_exps = sum(exps)
-    #         softmax = [j/sum_of_exps for j in exps]
-    #         if softmax[1] > max:
-    #             max_idx = i
+        for i in range(len(prob_val)):
+            exps = [np.exp(i) for i in prob_val[i]]
+            sum_of_exps = sum(exps)
+            softmax = [j/sum_of_exps for j in exps]
+            if softmax[1] > max:
+                max_idx = i
 
-    #     # output the sentence with the highest probability
-    #     output_sentence = candidate_sentences[max_idx]
-    #     output_sentences.append(output_sentence)
-    #     print('\t=>{}\n'.format(output_sentence))
+        # output the sentence with the highest probability
+        output_sentence = candidate_sentences[max_idx]
+        output_sentences.append(output_sentence)
+        print('\t=>{}\n'.format(output_sentence))
 
-    # # create two parallel files for input and output sentences
-    # with open("input.txt", "x") as f:
-    #     f.write("\n".join(input_sentences))
+    # create two parallel files for input and output sentences
+    with open("input.txt", "x") as f:
+        f.write("\n".join(input_sentences))
 
-    # with open("output.txt", "w") as f:
-    #     f.write("\n".join(output_sentences))
+    with open("output.txt", "w") as f:
+        f.write("\n".join(output_sentences))
 
 
 def main():

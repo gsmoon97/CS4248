@@ -1,6 +1,5 @@
 import sys
 import os
-import requests
 import math
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
@@ -44,37 +43,6 @@ def progress_bar(some_iter):
         return tqdm(some_iter)
     except ModuleNotFoundError:
         return some_iter
-
-
-def download_file_from_google_drive(id, destination):
-    print("Trying to fetch {}".format(destination))
-
-    def get_confirm_token(response):
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                return value
-        return None
-
-    def save_response_content(response, destination):
-        CHUNK_SIZE = 32768
-
-        with open(destination, "wb") as f:
-            for chunk in progress_bar(response.iter_content(CHUNK_SIZE)):
-                if chunk:  # filter out keep-alive new chunks
-                    f.write(chunk)
-
-    URL = "https://docs.google.com/uc?export=download"
-
-    session = requests.Session()
-
-    response = session.get(URL, params={'id': id}, stream=True)
-    token = get_confirm_token(response)
-
-    if token:
-        params = {'id': id, 'confirm': token}
-        response = session.get(URL, params=params, stream=True)
-
-    save_response_content(response, destination)
 
 
 def check_GE(sents, modelGEDs):
@@ -134,13 +102,13 @@ def check_GE(sents, modelGEDs):
         # Store predictions and true labels
         predictions.append(logits)
         # true_labels.append(label_ids)
-        print('logits:\n{}\n'.format(logits))
-        print('predictions:\n{}\n'.format(predictions))
+        # print('logits:\n{}\n'.format(logits))
+        # print('predictions:\n{}\n'.format(predictions))
 
     prob_vals = np.mean([np.array(pred) for pred in predictions], axis=0)
-    print('prob_vals:\n{}\n'.format(prob_vals))
+    # print('prob_vals:\n{}\n'.format(prob_vals))
     flat_predictions = np.argmax(prob_vals, axis=1).flatten()
-    print('flat_predictions:\n{}\n'.format(flat_predictions))
+    # print('flat_predictions:\n{}\n'.format(flat_predictions))
     # flat_true_labels = [item for sublist in true_labels for item in sublist]
 
     return flat_predictions, prob_vals
@@ -334,7 +302,8 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if no_error and softmax[1] > 0.99:
+        print('{} : {}\n'.format(new_sent, softmax[1]))
+        if no_error and softmax[1] > 0.9:
             print("*", end="")
             new_sentences.append(new_sent)
 
@@ -401,7 +370,7 @@ def predict(model_paths, data_path, start, end):
 
         print('Processing {} possibilities'.format(len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.99)
+        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.9)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')

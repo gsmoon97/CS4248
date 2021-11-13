@@ -377,7 +377,7 @@ def predict(model_paths):
         input_tokens = input_tokens[1:]  # remove S from input sentence
         input_sentence = ' '.join(input_tokens)
         input_sentences.append(input_sentence)
-    
+
     input_sentences = input_sentences[:5]
 
     print('Predicting for {} sentences from the input file'.format(
@@ -400,7 +400,12 @@ def predict(model_paths):
             output_sentences.append(input_sentence)
             continue
 
-        no_error, prob_val = check_GE(candidate_sentences, modelGEDs[0])
+        prob_vals = []
+        for model in modelGEDs:
+            no_error, prob_val = check_GE(candidate_sentences, model)
+            prob_vals.append(prob_val)
+
+        prob_val = np.mean([np.array(prob) for prob in prob_vals], axis=0)
 
         max = 0
         max_idx = 0

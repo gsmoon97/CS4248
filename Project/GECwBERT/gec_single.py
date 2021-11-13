@@ -360,8 +360,7 @@ def predict(model_path, data_path):
     modelGED.eval()
 
     # Load pre-trained model (weights) for Masked Language Model (MLM)
-    model = BertForMaskedLM.from_pretrained(
-        'bert-large-cased', do_lower_case=False)
+    model = BertForMaskedLM.from_pretrained('bert-large-cased')
     model.eval()
 
     # preprocessing input sentences
@@ -380,6 +379,8 @@ def predict(model_path, data_path):
     # output_sentences = []
 
     # for input_sentence in input_sentences:
+    #     print('Predicting for "{}"\n'.format(input_sentence))
+
     #     spelling_sentences = create_spelling_set(
     #         input_sentence, modelGED)
     #     grammar_sentences = create_grammar_set(
@@ -406,7 +407,6 @@ def predict(model_path, data_path):
     #         if softmax[1] > max:
     #             max_idx = i
 
-    #     print('Predicting for "{}"\n'.format(input_sentence))
     #     # output the sentence with the highest probability
     #     output_sentence = candidate_sentences[max_idx]
     #     output_sentences.append(output_sentence)

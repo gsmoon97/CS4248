@@ -440,7 +440,7 @@ def predict(model_paths, data_path, start, end):
 def main():
     model_paths = sys.argv[1:-3]
     no_of_models = len(model_paths)
-    print('Detected {} GED models\n'.format(len(no_of_models)))
+    print('Detected {} GED models\n'.format(no_of_models))
     data_path = sys.argv[-3]
     start = int(sys.argv[-2])
     end = int(sys.argv[-1])

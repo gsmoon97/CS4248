@@ -345,33 +345,27 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
     return spelling_sentences
 
 
-def predict(model_path):
+def predict(model_path, data_path):
     # Check to confirm that GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
     torch.cuda.get_device_name(0)
 
-    print(device)  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    # # load previously trained BERT Grammar Error Detection model
+    # modelGED = BertForSequenceClassification.from_pretrained(
+    #     "bert-base-cased", num_labels=2)
 
-    # load previously trained BERT Grammar Error Detection model
-    modelGED = BertForSequenceClassification.from_pretrained(
-        "bert-base-cased", num_labels=2)
+    # # restore model
+    # modelGED.load_state_dict(torch.load(model_path))
+    # modelGED.eval()
 
-    # restore model
-    modelGED.load_state_dict(torch.load(model_path))
-    modelGED.eval()
-
-    print('ged model loaded')  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-    # Load pre-trained model (weights) for Masked Language Model (MLM)
-    model = BertForMaskedLM.from_pretrained(
-        'bert-large-cased', do_lower_case=False)
-    model.eval()
-
-    print('mlm model loaded')  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    # # Load pre-trained model (weights) for Masked Language Model (MLM)
+    # model = BertForMaskedLM.from_pretrained(
+    #     'bert-large-cased', do_lower_case=False)
+    # model.eval()
 
     # preprocessing input sentences
-    file = open("./data/conll14st-preprocessed.m2").read().strip().split("\n\n")
+    file = open(data_path).read().strip().split("\n\n")
 
     input_sentences = []
     for i in range(len(file)):
@@ -383,7 +377,7 @@ def predict(model_path):
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
 
-    output_sentences = []
+    # output_sentences = []
 
     # for input_sentence in input_sentences:
     #     spelling_sentences = create_spelling_set(
@@ -419,18 +413,17 @@ def predict(model_path):
     #     print('\t=>{}\n'.format(output_sentence))
 
     # # create two parallel files for input and output sentences
-    # with open("./out/input.txt", "x") as f:
+    # with open("input.txt", "x") as f:
     #     f.write("\n".join(input_sentences))
 
-    # with open("./out/output.txt", "w") as f:
+    # with open("output.txt", "w") as f:
     #     f.write("\n".join(output_sentences))
 
 
 def main():
-    no_of_models = len(sys.argv) - 1
     model_path = sys.argv[1]
-    print('Detected {} GED models\n'.format(no_of_models))
-    predict(model_path)
+    data_path = sys.argv[2]
+    predict(model_path, data_path)
     print('Successfully finished prediction\n')
 
 

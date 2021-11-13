@@ -330,7 +330,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if no_error and softmax[1] > 0.995:
+        if no_error and softmax[1] > 0.99:
             print("*", end="")
             new_sentences.append(new_sent)
 
@@ -345,7 +345,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
     return spelling_sentences
 
 
-def predict(model_paths):
+def predict(model_paths, data_path):
     # Check to confirm that GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
@@ -369,7 +369,7 @@ def predict(model_paths):
     model.eval()
 
     # preprocessing input sentences
-    file = open("./data/conll14st-preprocessed.m2").read().strip().split("\n\n")
+    file = open(data_path).read().strip().split("\n\n")
 
     input_sentences = []
     for i in range(len(file)):
@@ -399,7 +399,7 @@ def predict(model_paths):
 
         print('Processing {0} possibilities'.format(len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.995)
+        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.99)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')
@@ -435,12 +435,15 @@ def predict(model_paths):
     with open("output.txt", "w") as f:
         f.write("\n".join(output_sentences))
 
+    print(output_sentences)
+
 
 def main():
     no_of_models = len(sys.argv) - 1
-    model_paths = sys.argv[1:]
     print('Detected {} GED models\n'.format(no_of_models))
-    predict(model_paths)
+    model_paths = sys.argv[1:]
+    data_path = sys.argv[2]
+    predict(model_paths, data_path)
     print('Successfully finished prediction\n')
 
 

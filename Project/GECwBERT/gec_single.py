@@ -330,7 +330,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if no_error and softmax[1] > 0.995:
+        if no_error and softmax[1] > 0.99:
             print("*", end="")
             new_sentences.append(new_sent)
 
@@ -372,6 +372,8 @@ def predict(model_path, data_path):
         input_sentence = ' '.join(input_tokens)
         input_sentences.append(input_sentence)
 
+    input_sentences = input_sentences[:5]
+
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
 
@@ -391,7 +393,7 @@ def predict(model_path, data_path):
 
         print('Processing {0} possibilities'.format(len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.995)
+        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.99)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')
@@ -421,6 +423,8 @@ def predict(model_path, data_path):
 
     with open("output.txt", "w") as f:
         f.write("\n".join(output_sentences))
+
+    print(output_sentences)
 
 
 def main():

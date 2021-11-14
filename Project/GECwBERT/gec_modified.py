@@ -236,6 +236,8 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
     l = len(org_sent.strip().split())*2  # l is no of sentencees
     mask = False  # flag indicating if we are processing space MASK
 
+    max = 0.996
+
     for sent in sentences:
         i += 1
 
@@ -297,8 +299,6 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
         text.remove('[SEP]')
         text.remove('[CLS]')
         new_sent = " ".join(text)
-
-        max = 0.996
 
         # retain new sentences which have a minimum chance of correctness using BERT GED
         no_error, prob_val = check_GE([new_sent], modelGEDs)

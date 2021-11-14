@@ -298,7 +298,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
         text.remove('[CLS]')
         new_sent = " ".join(text)
 
-        max = 0.999
+        max = 0.996
 
         # retain new sentences which have a minimum chance of correctness using BERT GED
         no_error, prob_val = check_GE([new_sent], modelGEDs)
@@ -379,7 +379,7 @@ def predict(model_paths, data_path, start, end):
         # logging.info('Processing {} possibilities'.format(
         #     len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.999)
+        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.996)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')
@@ -408,7 +408,7 @@ def main():
     data_path = sys.argv[-3]
     start = int(sys.argv[-2])
     end = int(sys.argv[-1])
-    logging.basicConfig(level=logging.INFO, filename='input_{}mod_{}_{}.log'.format(
+    logging.basicConfig(level=logging.INFO, filename='log_{}mod_{}_{}.log'.format(
         no_of_models, start, end))
     print('Detected {} GED models\n'.format(no_of_models))
     logging.info('Detected {} GED models\n'.format(no_of_models))

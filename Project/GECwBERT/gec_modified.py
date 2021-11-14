@@ -1,6 +1,5 @@
 import sys
 import os
-import requests
 import math
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
@@ -11,6 +10,7 @@ from hunspell import Hunspell
 import spacy
 from tqdm import tqdm
 import numpy as np
+import logging
 
 # Load pre-trained model tokenizer (vocabulary)
 tokenizer = BertTokenizer.from_pretrained(
@@ -46,38 +46,7 @@ def progress_bar(some_iter):
         return some_iter
 
 
-def download_file_from_google_drive(id, destination):
-    print("Trying to fetch {}".format(destination))
-
-    def get_confirm_token(response):
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                return value
-        return None
-
-    def save_response_content(response, destination):
-        CHUNK_SIZE = 32768
-
-        with open(destination, "wb") as f:
-            for chunk in progress_bar(response.iter_content(CHUNK_SIZE)):
-                if chunk:  # filter out keep-alive new chunks
-                    f.write(chunk)
-
-    URL = "https://docs.google.com/uc?export=download"
-
-    session = requests.Session()
-
-    response = session.get(URL, params={'id': id}, stream=True)
-    token = get_confirm_token(response)
-
-    if token:
-        params = {'id': id, 'confirm': token}
-        response = session.get(URL, params=params, stream=True)
-
-    save_response_content(response, destination)
-
-
-def check_GE(sents, modelGED):
+def check_GE(sents, modelGEDs):
     """Check of the input sentences have grammatical errors
     :param list: list of sentences
     :return: error, probabilities
@@ -121,32 +90,32 @@ def check_GE(sents, modelGED):
     prediction_masks = torch.tensor(attention_masks)
     prediction_labels = torch.tensor(labels)
 
-    with torch.no_grad():
-        # Forward pass, calculate logit predictions
-        logits = modelGED(prediction_inputs, token_type_ids=None,
-                          attention_mask=prediction_masks)
+    for modelGED in modelGEDs:
+        with torch.no_grad():
+            # Forward pass, calculate logit predictions
+            logits = modelGED(prediction_inputs, token_type_ids=None,
+                              attention_mask=prediction_masks)
 
-    # Move logits and labels to CPU
-    logits = logits.detach().cpu().numpy()
-    # label_ids = b_labels.to("cpu").numpy()
+        # Move logits and labels to CPU
+        logits = logits.detach().cpu().numpy()
+        # label_ids = b_labels.to("cpu").numpy()
 
-    # Store predictions and true labels
-    predictions.append(logits)
-    # true_labels.append(label_ids)
+        # Store predictions and true labels
+        predictions.append(logits)
+        # true_labels.append(label_ids)
+        # print('logits:\n{}\n'.format(logits))
+        # print('predictions:\n{}\n'.format(predictions))
 
-    print('predictions:\n{}\n'.format(predictions))
-
-    temp = [item for sublist in predictions for item in sublist]
-    prob_vals = temp
-    print('prob_vals:\n{}\n'.format(prob_vals))
-    flat_predictions = np.argmax(temp, axis=1).flatten()
-    print('flat_predictions:\n{}\n'.format(flat_predictions))
+    prob_vals = np.mean([np.array(pred) for pred in predictions], axis=0)
+    # print('prob_vals:\n{}\n'.format(prob_vals))
+    flat_predictions = np.argmax(prob_vals, axis=1).flatten()
+    # print('flat_predictions:\n{}\n'.format(flat_predictions))
     # flat_true_labels = [item for sublist in true_labels for item in sublist]
 
     return flat_predictions, prob_vals
 
 
-def create_spelling_set(org_text, modelGED):
+def create_spelling_set(org_text, modelGEDs):
     """ Create a set of sentences which have possible corrected spellings
     """
 
@@ -174,11 +143,11 @@ def create_spelling_set(org_text, modelGED):
     new_sentences = []
 
     for sent in spelling_sentences:
-        no_error, prob_val = check_GE([sent], modelGED)
+        no_error, prob_val = check_GE([sent], modelGEDs)
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if(softmax[1] > 0.6):
+        if(len(softmax) > 1 and softmax[1] > 0.6):
             new_sentences.append(sent)
 
     # if no corrections, append the original sentence
@@ -192,7 +161,7 @@ def create_spelling_set(org_text, modelGED):
     return spelling_sentences
 
 
-def create_grammar_set(spelling_sentences, modelGED):
+def create_grammar_set(spelling_sentences, modelGEDs):
     """ create a new set of sentences with deleted determiners, 
         prepositions & helping verbs
     """
@@ -210,11 +179,11 @@ def create_grammar_set(spelling_sentences, modelGED):
             text = " ".join(new_sent)
 
             # retain new sentences which have a minimum chance of correctness using BERT GED
-            no_error, prob_val = check_GE([text], modelGED)
+            no_error, prob_val = check_GE([text], modelGEDs)
             exps = [np.exp(i) for i in prob_val[0]]
             sum_of_exps = sum(exps)
             softmax = [j/sum_of_exps for j in exps]
-            if(softmax[1] > 0.6):
+            if(len(softmax) > 1 and softmax[1] > 0.6):
                 new_sentences.append(text)
 
     # eliminate dupllicates
@@ -250,7 +219,7 @@ def create_mask_set(spelling_sentences):
     return sentences
 
 
-def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
+def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
     """ check grammar for the input sentences
     """
 
@@ -329,38 +298,46 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGED):
         text.remove('[CLS]')
         new_sent = " ".join(text)
 
+        max = 0.999
+
         # retain new sentences which have a minimum chance of correctness using BERT GED
-        no_error, prob_val = check_GE([new_sent], modelGED)
+        no_error, prob_val = check_GE([new_sent], modelGEDs)
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if no_error and softmax[1] > 0.99:
+        if no_error and len(softmax) > 1 and softmax[1] > max:
+            max = softmax[1]
+            new_sentences = [new_sent]
+            print('{} : {}\n'.format(new_sent, softmax[1]))
             print("*", end="")
-            new_sentences.append(new_sent)
 
     print("")
 
     # remove duplicate suggestions
     spelling_sentences = []
-    # [spelling_sentences.append(sent) for sent in new_sentences]
+    [spelling_sentences.append(sent) for sent in new_sentences]
     spelling_sentences = list(dict.fromkeys(spelling_sentences))
-    # spelling_sentences
+    spelling_sentences
 
     return spelling_sentences
 
 
-def predict(model_path, data_path, start, end):
+def predict(model_paths, data_path, start, end):
     # Check to confirm that GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
     torch.cuda.get_device_name(0)
 
-    # load previously trained BERT Grammar Error Detection model
-    modelGED = BertForSequenceClassification.from_pretrained(
-        "bert-base-cased", num_labels=2)
-    # restore model
-    modelGED.load_state_dict(torch.load(model_path))
-    modelGED.eval()
+    modelGEDs = []
+
+    for model_path in model_paths:
+        # load previously trained BERT Grammar Error Detection model
+        modelGED = BertForSequenceClassification.from_pretrained(
+            "bert-base-cased", num_labels=2)
+        # restore model
+        modelGED.load_state_dict(torch.load(model_path))
+        modelGED.eval()
+        modelGEDs.append(modelGED)
 
     # Load pre-trained model (weights) for Masked Language Model (MLM)
     model = BertForMaskedLM.from_pretrained('bert-large-cased')
@@ -380,66 +357,64 @@ def predict(model_path, data_path, start, end):
 
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
+    logging.info('Predicting for {} sentences from the input file'.format(
+        len(input_sentences)))
 
     output_sentences = []
 
     for input_sentence in input_sentences:
         print('Input : {}'.format(input_sentence))
-
+        logging.info('Input : {}'.format(input_sentence))
         spelling_sentences = create_spelling_set(
-            input_sentence, modelGED)
+            input_sentence, modelGEDs)
         grammar_sentences = create_grammar_set(
-            spelling_sentences, modelGED)
-        mask_sentences = create_mask_set(grammar_sentences)
+            spelling_sentences, modelGEDs)
+        mask_sentences = create_mask_set(
+            grammar_sentences)
 
         candidate_sentences = check_grammar(
-            input_sentence, mask_sentences, grammar_sentences, model, modelGED)
+            input_sentence, mask_sentences, grammar_sentences, model, modelGEDs)
 
-        print('Processing {} possibilities'.format(len(candidate_sentences)))
+        # print('Processing {} possibilities'.format(len(candidate_sentences)))
+        # logging.info('Processing {} possibilities'.format(
+        #     len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no highly probable sentences (> 0.99)
+        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.999)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')
+            logging.info('Output : (no change)\n')
             continue
+        else:
+            # output the sentence with the highest probability
+            output_sentence = candidate_sentences[0]
+            output_sentences.append(output_sentence)
+            print('Output : {}\n'.format(output_sentence))
+            logging.info('Output : {}\n'.format(output_sentence))
 
-        no_error, prob_val = check_GE(candidate_sentences, modelGED)
-
-        max = 0
-        max_idx = 0
-
-        for i in range(len(prob_val)):
-            exps = [np.exp(i) for i in prob_val[i]]
-            sum_of_exps = sum(exps)
-            softmax = [j/sum_of_exps for j in exps]
-            if softmax[1] > max:
-                max = softmax[1]
-                max_idx = i
-
-        # output the sentence with the highest probability
-        output_sentence = candidate_sentences[max_idx]
-        output_sentences.append(output_sentence)
-        print('Output : {}\n'.format(output_sentence))
+    no_of_models = len(modelGEDs)
 
     # create two parallel files for input and output sentences
-    with open("input_single_{}_{}.txt".format(start, end), "x") as f:
+    with open("input_{}mod_{}_{}.txt".format(no_of_models, start, end), "x") as f:
         f.write("\n".join(input_sentences))
 
-    with open("output_single_{}_{}.txt".format(start, end), "w") as f:
+    with open("output_{}mod_{}_{}.txt".format(no_of_models, start, end), "w") as f:
         f.write("\n".join(output_sentences))
-
-    for out_sent in output_sentences:
-        print(out_sent)
-        print('\n')
 
 
 def main():
-    model_path = sys.argv[1]
+    model_paths = sys.argv[1:-3]
+    no_of_models = len(model_paths)
     data_path = sys.argv[-3]
     start = int(sys.argv[-2])
     end = int(sys.argv[-1])
-    predict(model_path, data_path, start, end)
+    logging.basicConfig(level=logging.INFO, filename='log_{}mod_{}_{}.log'.format(
+        no_of_models, start, end))
+    print('Detected {} GED models\n'.format(no_of_models))
+    logging.info('Detected {} GED models\n'.format(no_of_models))
+    predict(model_paths, data_path, start, end)
     print('Successfully finished prediction\n')
+    logging.info('Successfully finished prediction\n')
 
 
 if __name__ == "__main__":

@@ -303,9 +303,8 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
         exps = [np.exp(i) for i in prob_val[0]]
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]
-        if no_error and len(softmax) > 1 and softmax[1] > 0.997:
+        if no_error and len(softmax) > 1 and softmax[1] > 0.996:
             print('{} : {}\n'.format(new_sent, softmax[1]))
-            logging.info('{} : {}\n'.format(new_sent, softmax[1]))
             print("*", end="")
             new_sentences.append(new_sent)
 
@@ -377,7 +376,7 @@ def predict(model_paths, data_path, start, end):
         logging.info('Processing {} possibilities'.format(
             len(candidate_sentences)))
 
-        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.997)
+        if len(candidate_sentences) == 0:  # no candidate sentences (> 0.996)
             output_sentence = input_sentence
             output_sentences.append(output_sentence)
             print('Output : (no change)\n')

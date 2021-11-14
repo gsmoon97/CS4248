@@ -162,7 +162,7 @@ def create_spelling_set(org_text, modelGEDs):
 
 
 def create_grammar_set(spelling_sentences, modelGEDs):
-    """ create a new set of sentences with deleted determiners, 
+    """ create a new set of sentences with deleted determiners,
         prepositions & helping verbs
     """
     new_sentences = []
@@ -319,7 +319,7 @@ def check_grammar(org_sent, sentences, spelling_sentences, model, modelGEDs):
     return spelling_sentences
 
 
-def predict(model_paths, data_path, start, end):
+def predict(model_paths, data_path):
     # Check to confirm that GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
@@ -349,8 +349,6 @@ def predict(model_paths, data_path, start, end):
         input_tokens = input_tokens[1:]  # remove S from input sentence
         input_sentence = ' '.join(input_tokens)
         input_sentences.append(input_sentence)
-
-    input_sentences = input_sentences[start:end]
 
     print('Predicting for {} sentences from the input file'.format(
         len(input_sentences)))
@@ -405,24 +403,22 @@ def predict(model_paths, data_path, start, end):
     no_of_models = len(modelGEDs)
 
     # create two parallel files for input and output sentences
-    with open("input_{}mod_{}_{}.txt".format(no_of_models, start, end), "x") as f:
+    with open("original_{}_model_input.txt".format(no_of_models), "x") as f:
         f.write("\n".join(input_sentences))
 
-    with open("output_{}mod_{}_{}.txt".format(no_of_models, start, end), "w") as f:
+    with open("original_{}_model_output.txt".format(no_of_models), "w") as f:
         f.write("\n".join(output_sentences))
 
 
 def main():
-    model_paths = sys.argv[1:-3]
+    model_paths = sys.argv[1:-1]
     no_of_models = len(model_paths)
-    data_path = sys.argv[-3]
-    start = int(sys.argv[-2])
-    end = int(sys.argv[-1])
-    logging.basicConfig(level=logging.INFO, filename='log_{}mod_{}_{}.log'.format(
-        no_of_models, start, end))
+    data_path = sys.argv[-1]
+    logging.basicConfig(level=logging.INFO,
+                        filename='original_{}_model.log'.format(no_of_models))
     print('Detected {} GED models\n'.format(no_of_models))
     logging.info('Detected {} GED models\n'.format(no_of_models))
-    predict(model_paths, data_path, start, end)
+    predict(model_paths, data_path)
     print('Successfully finished prediction\n')
     logging.info('Successfully finished prediction\n')
 

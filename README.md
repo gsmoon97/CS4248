@@ -1,6 +1,6 @@
 # CS4248 - Natural Language Processing
 ## Grammar Error Correction with Bidirectional Encoder Representations from Transformers (GECwBERT)
-Authors: Moon Geonsik, Rui Zhi, Surthi, Tian Yong, Xingquan
+Authors: Moon Geonsik, Rui Zhi, Sruthi Saravanan, Tian Yong Goh, Xingquan
 
 GECwBERT is a model which consists of two main tasks 1) Grammar Error Detection(GED) and 2) Grammar Error Correction(GEC). For this model, GED will be used to fine-tune the pretrained model and GEC will be used to correct the sentences.
 
@@ -17,11 +17,13 @@ GEC only depends on the Mask Language Model(MLM). In other words, there is no an
   - [CoLA](https://nyu-mll.github.io/CoLA/cola_public_1.1.zip)
 
 ### Downloads
-- Install miniconda
-- Download **pre-processed data** & **fine-tune models**
+- Install **miniconda**
+- Download **pre-processed data** & **pre-trained models**
+  
   pre-processed data: (Google Drive)
     - url: https://drive.google.com/drive/folders/1EhVFTZ3t6WrPjeABvgAvlRDg5HqjAcWL?usp=sharing
-  pre-trained model: (Google Drive) 
+
+  pre-trained model: (Google Drive)
     - url: https://drive.google.com/drive/folders/1XnKulXvX2zJOMaM3WQU5zYJvoJrho2zU?usp=sharing
 
 ### Dependencies
@@ -42,7 +44,7 @@ conda activate myenv
 python -m spacy download en_core_web_sm
 ```
 
-### Preprocess Data
+### Pre-process Data
 Files required:
 1. nucle.train.gold.bea19.m2 (From NUCLE)
 1. fce.train.gold.bea19.m2 (From FCE)
@@ -51,7 +53,7 @@ Files required:
 python3 m2preprocess.py
 ```
 
-### Fine-tune Model using GED
+### Fine-tune Models using GED
 Files required:
 1. data_nucle.csv
 1. data_ABC.csv (from W&I+Locness)
@@ -104,4 +106,4 @@ errant_compare -hyp [output.m2] -ref [test_file.m2]
 ```
 
 ### Acknowledgments
-Our code was modified from [GECwBERT](https://github.com/sunilchomal/GECwBERT) codebase.
+- [GECwBERT](https://github.com/sunilchomal/GECwBERT)
